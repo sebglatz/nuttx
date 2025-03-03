@@ -352,6 +352,8 @@
 /* Alternate function pin selections ****************************************/
 
 /* USART1 (Serial Console) */
+#define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9   */
+#define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8   */
 
 #define GPIO_USART1_RX   (GPIO_USART1_RX_1|GPIO_SPEED_100MHz)  /* PB15 */
 #define GPIO_USART1_TX   (GPIO_USART1_TX_1|GPIO_SPEED_100MHz)  /* PB14 */

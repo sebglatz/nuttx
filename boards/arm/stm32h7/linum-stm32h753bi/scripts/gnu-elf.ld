@@ -22,107 +22,94 @@
 
 SECTIONS
 {
-  .text 0x00000000 :
-    {
-      _stext = . ;
-      *(.text)
-      *(.text.*)
-      *(.gnu.warning)
-      *(.stub)
-      *(.glue_7)
-      *(.glue_7t)
-      *(.jcr)
+	.text : {
+		_stext = ABSOLUTE(.);
+		*(.vectors)
+		. = ALIGN(32);
+		/*
+		This signature provides the bootloader with a way to delay booting
+		*/
+		_bootdelay_signature = ABSOLUTE(.);
+		FILL(0xffecc2925d7d05c5)
+		. += 8;
+		*(.text .text.*)
+		*(.fixup)
+		*(.gnu.warning)
+		*(.rodata .rodata.*)
+		*(.gnu.linkonce.t.*)
+		*(.glue_7)
+		*(.glue_7t)
+		*(.got)
+		*(.gcc_except_table)
+		*(.gnu.linkonce.r.*)
+		_etext = ABSOLUTE(.);
 
-      /* C++ support:  The .init and .fini sections contain specific logic
-       * to manage static constructors and destructors.
-       */
+	} > FLASH
 
-      *(.gnu.linkonce.t.*)
-      *(.init)             /* Old ABI */
-      *(.fini)             /* Old ABI */
-      _etext = . ;
-    }
+	/*
+	 * Init functions (static constructors and the like)
+	 */
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		KEEP(*(.init_array .init_array.*))
+		_einit = ABSOLUTE(.);
+	} > FLASH
 
-  .ARM.extab :
-    {
-      *(.ARM.extab*)
-    }
 
-  .ARM.exidx :
-    {
-      *(.ARM.exidx*)
-    }
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > FLASH
 
-  .rodata :
-    {
-      _srodata = . ;
-      *(.rodata)
-      *(.rodata1)
-      *(.rodata.*)
-      *(.gnu.linkonce.r*)
-      _erodata = . ;
-    }
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > FLASH
+	__exidx_end = ABSOLUTE(.);
 
-  .data :
-    {
-      _sdata = . ;
-      *(.data)
-      *(.data1)
-      *(.data.*)
-      *(.gnu.linkonce.d*)
-      . = ALIGN(4);
-      _edata = . ;
-    }
+	_eronly = ABSOLUTE(.);
 
-  /* C++ support. For each global and static local C++ object,
-   * GCC creates a small subroutine to construct the object. Pointers
-   * to these routines (not the routines themselves) are stored as
-   * simple, linear arrays in the .ctors section of the object file.
-   * Similarly, pointers to global/static destructor routines are
-   * stored in .dtors.
-   */
+	.data : {
+		_sdata = ABSOLUTE(.);
+		*(.data .data.*)
+		*(.gnu.linkonce.d.*)
+		CONSTRUCTORS
+		_edata = ABSOLUTE(.);
 
-  .ctors :
-    {
-      _sctors = . ;
-      *(.ctors)       /* Old ABI:  Unallocated */
-      *(.init_array)  /* New ABI:  Allocated */
-      _edtors = . ;
-    }
+		/* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
+		. = ALIGN(16);
+		FILL(0xffff)
+		. += 16;
+	} > AXI_SRAM AT > FLASH  = 0xffff
 
-  .dtors :
-    {
-      _sdtors = . ;
-      *(.dtors)       /* Old ABI:  Unallocated */
-      *(.fini_array)  /* New ABI:  Allocated */
-      _edtors = . ;
-    }
+	.bss : {
+		_sbss = ABSOLUTE(.);
+		*(.bss .bss.*)
+		*(.gnu.linkonce.b.*)
+		*(COMMON)
+		. = ALIGN(4);
+		_ebss = ABSOLUTE(.);
+	} > AXI_SRAM
 
-  .bss :
-    {
-      _sbss = . ;
-      *(.bss)
-      *(.bss.*)
-      *(.sbss)
-      *(.sbss.*)
-      *(.gnu.linkonce.b*)
-      *(COMMON)
-      . = ALIGN(4);
-      _ebss = . ;
-    }
+	/* Emit the the D3 power domain section for locating BDMA data */
 
-    /* Stabs debugging sections.    */
+	.sram4_reserve (NOLOAD) :
+	{
+		*(.sram4)
+		. = ALIGN(4);
+		_sram4_heap_start = ABSOLUTE(.);
+	} > SRAM4
 
-    .stab 0 : { *(.stab) }
-    .stabstr 0 : { *(.stabstr) }
-    .stab.excl 0 : { *(.stab.excl) }
-    .stab.exclstr 0 : { *(.stab.exclstr) }
-    .stab.index 0 : { *(.stab.index) }
-    .stab.indexstr 0 : { *(.stab.indexstr) }
-    .comment 0 : { *(.comment) }
-    .debug_abbrev 0 : { *(.debug_abbrev) }
-    .debug_info 0 : { *(.debug_info) }
-    .debug_line 0 : { *(.debug_line) }
-    .debug_pubnames 0 : { *(.debug_pubnames) }
-    .debug_aranges 0 : { *(.debug_aranges) }
+	/* Stabs debugging sections. */
+	.stab 0 : { *(.stab) }
+	.stabstr 0 : { *(.stabstr) }
+	.stab.excl 0 : { *(.stab.excl) }
+	.stab.exclstr 0 : { *(.stab.exclstr) }
+	.stab.index 0 : { *(.stab.index) }
+	.stab.indexstr 0 : { *(.stab.indexstr) }
+	.comment 0 : { *(.comment) }
+	.debug_abbrev 0 : { *(.debug_abbrev) }
+	.debug_info 0 : { *(.debug_info) }
+	.debug_line 0 : { *(.debug_line) }
+	.debug_pubnames 0 : { *(.debug_pubnames) }
+	.debug_aranges 0 : { *(.debug_aranges) }
 }
