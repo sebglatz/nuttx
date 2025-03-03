@@ -351,7 +351,7 @@
 
 /* Alternate function pin selections ****************************************/
 
-/* USART1 (Serial Console) */
+/* USART3 (Serial Console) */
 #define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9   */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8   */
 
