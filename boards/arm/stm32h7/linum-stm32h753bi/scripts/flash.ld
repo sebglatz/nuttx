@@ -1,28 +1,42 @@
 /****************************************************************************
- * boards/arm/stm32h7/linum-stm32h753bi/scripts/flash.ld
+ * scripts/script.ld
  *
- * SPDX-License-Identifier: Apache-2.0
+ *   Copyright (C) 2016, 2019 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.  The
- * ASF licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
 
-/* The STM32H753BI has 2048Kb of main FLASH memory. The flash memory is
- * partitioned into a User Flash memory and a System Flash memory. Each
- * of these memories has two banks:
+/* The PX4 FMUV6X uses an STM32H753II has 2048Kb of main FLASH memory.
+ * The flash memory is partitioned into a User Flash memory and a System
+ * Flash memory. Each of these memories has two banks:
  *
  *   1) User Flash memory:
  *
@@ -36,7 +50,7 @@
  *
  *   3) User option bytes for user configuration, only in Bank 1.
  *
- * In the STM32H753BI, two different boot spaces can be selected through
+ * In the STM32H743II, two different boot spaces can be selected through
  * the BOOT pin and the boot base address programmed in the BOOT_ADD0 and
  * BOOT_ADD1 option bytes:
  *
@@ -45,11 +59,11 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x1FF0:0000
  *
- * NuttX does not modify these option bytes. On the unmodified
- * LINUM-STM32H753BI board, the BOOT0 pin is at ground so by default, the
- * STM32 will boot to address 0x0800:0000 in FLASH.
+ * The PX4 FMUV6X has a test point on board, the BOOT0 pin is at ground so by
+ * default, the STM32 will boot to address 0x0800:0000 in FLASH unless the test
+ * point is pulled to 3.3V.then the boot will be from 0x1FF0:0000
  *
- * The STM32H753BI also has 1024Kb of data SRAM.
+ * The STM32H743II also has 1024Kb of data SRAM.
  * SRAM is split up into several blocks and into three power domains:
  *
  *   1) TCM SRAMs are dedicated to the Cortex-M7 and are accessible with
@@ -95,106 +109,121 @@
 
 MEMORY
 {
-  itcm  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
-  flash (rx)  : ORIGIN = 0x08000000, LENGTH = 2048K
-  dtcm1 (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
-  dtcm2 (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
-  sram  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K
-  sram1 (rwx) : ORIGIN = 0x30000000, LENGTH =  128K
-  sram2 (rwx) : ORIGIN = 0x30020000, LENGTH =  128K
-  sram3 (rwx) : ORIGIN = 0x30040000, LENGTH =   32K
-  sram4 (rwx) : ORIGIN = 0x38000000, LENGTH =   64K
-  bbram (rwx) : ORIGIN = 0x38800000, LENGTH =    4K
+	ITCM_RAM  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
+	FLASH      (rx) : ORIGIN = 0x08000000, LENGTH = 2048K
+
+	DTCM1_RAM (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
+	DTCM2_RAM (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
+	AXI_SRAM  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K /* D1 domain AXI bus */
+	SRAM1     (rwx) : ORIGIN = 0x30000000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM2     (rwx) : ORIGIN = 0x30020000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM3     (rwx) : ORIGIN = 0x30040000, LENGTH =   32K /* D2 domain AHB bus */
+	SRAM4     (rwx) : ORIGIN = 0x38000000, LENGTH =   64K /* D3 domain */
+	BKPRAM    (rwx) : ORIGIN = 0x38800000, LENGTH =    4K
 }
 
 OUTPUT_ARCH(arm)
 EXTERN(_vectors)
 ENTRY(_stext)
+
+/*
+ * Ensure that abort() is present in the final object.  The exception handling
+ * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
+ */
+EXTERN(abort)
+EXTERN(_bootdelay_signature)
+EXTERN(board_get_manifest)
+
 SECTIONS
 {
-    .text :
-    {
-        _stext = ABSOLUTE(.);
-        *(.vectors)
-        *(.text .text.*)
-        *(.fixup)
-        *(.gnu.warning)
-        *(.rodata .rodata.*)
-        *(.gnu.linkonce.t.*)
-        *(.glue_7)
-        *(.glue_7t)
-        *(.got)
-        *(.gcc_except_table)
-        *(.gnu.linkonce.r.*)
-        _etext = ABSOLUTE(.);
-    } > flash
+	.text : {
+		_stext = ABSOLUTE(.);
+		*(.vectors)
+		. = ALIGN(32);
+		/*
+		This signature provides the bootloader with a way to delay booting
+		*/
+		_bootdelay_signature = ABSOLUTE(.);
+		FILL(0xffecc2925d7d05c5)
+		. += 8;
+		*(.text .text.*)
+		*(.fixup)
+		*(.gnu.warning)
+		*(.rodata .rodata.*)
+		*(.gnu.linkonce.t.*)
+		*(.glue_7)
+		*(.glue_7t)
+		*(.got)
+		*(.gcc_except_table)
+		*(.gnu.linkonce.r.*)
+		_etext = ABSOLUTE(.);
 
-    .init_section :
-    {
-        _sinit = ABSOLUTE(.);
-        *(.init_array .init_array.*)
-        _einit = ABSOLUTE(.);
-    } > flash
+	} > FLASH
 
-    .ARM.extab :
-    {
-        *(.ARM.extab*)
-    } > flash
+	/*
+	 * Init functions (static constructors and the like)
+	 */
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		KEEP(*(.init_array .init_array.*))
+		_einit = ABSOLUTE(.);
+	} > FLASH
 
-    __exidx_start = ABSOLUTE(.);
-    .ARM.exidx :
-    {
-        *(.ARM.exidx*)
-    } > flash
-    __exidx_end = ABSOLUTE(.);
 
-    _eronly = ABSOLUTE(.);
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > FLASH
 
-    .data :
-    {
-        _sdata = ABSOLUTE(.);
-        *(.data .data.*)
-        *(.gnu.linkonce.d.*)
-        CONSTRUCTORS
-        . = ALIGN(4);
-        _edata = ABSOLUTE(.);
-    } > sram AT > flash
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > FLASH
+	__exidx_end = ABSOLUTE(.);
 
-    .bss :
-    {
-        _sbss = ABSOLUTE(.);
-        *(.bss .bss.*)
-        *(.gnu.linkonce.b.*)
-        *(COMMON)
-        . = ALIGN(4);
-        _ebss = ABSOLUTE(.);
-    } > sram
+	_eronly = ABSOLUTE(.);
 
-    /* Emit the the D3 power domain section for locating BDMA data
-     *
-     * Static data with locate_data(".sram4") will be located
-     * at start of SRAM4; the rest of SRAM4 will be added to the heap.
-     */
+	.data : {
+		_sdata = ABSOLUTE(.);
+		*(.data .data.*)
+		*(.gnu.linkonce.d.*)
+		CONSTRUCTORS
+		_edata = ABSOLUTE(.);
 
-    .sram4_reserve (NOLOAD) :
-    {
-        *(.sram4)
-        . = ALIGN(4);
-        _sram4_heap_start = ABSOLUTE(.);
-    } > sram4
+		/* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
+		. = ALIGN(16);
+		FILL(0xffff)
+		. += 16;
+	} > AXI_SRAM AT > FLASH  = 0xffff
 
-    /* Stabs debugging sections. */
+	.bss : {
+		_sbss = ABSOLUTE(.);
+		*(.bss .bss.*)
+		*(.gnu.linkonce.b.*)
+		*(COMMON)
+		. = ALIGN(4);
+		_ebss = ABSOLUTE(.);
+	} > AXI_SRAM
 
-    .stab 0 : { *(.stab) }
-    .stabstr 0 : { *(.stabstr) }
-    .stab.excl 0 : { *(.stab.excl) }
-    .stab.exclstr 0 : { *(.stab.exclstr) }
-    .stab.index 0 : { *(.stab.index) }
-    .stab.indexstr 0 : { *(.stab.indexstr) }
-    .comment 0 : { *(.comment) }
-    .debug_abbrev 0 : { *(.debug_abbrev) }
-    .debug_info 0 : { *(.debug_info) }
-    .debug_line 0 : { *(.debug_line) }
-    .debug_pubnames 0 : { *(.debug_pubnames) }
-    .debug_aranges 0 : { *(.debug_aranges) }
+	/* Emit the the D3 power domain section for locating BDMA data */
+
+	.sram4_reserve (NOLOAD) :
+	{
+		*(.sram4)
+		. = ALIGN(4);
+		_sram4_heap_start = ABSOLUTE(.);
+	} > SRAM4
+
+	/* Stabs debugging sections. */
+	.stab 0 : { *(.stab) }
+	.stabstr 0 : { *(.stabstr) }
+	.stab.excl 0 : { *(.stab.excl) }
+	.stab.exclstr 0 : { *(.stab.exclstr) }
+	.stab.index 0 : { *(.stab.index) }
+	.stab.indexstr 0 : { *(.stab.indexstr) }
+	.comment 0 : { *(.comment) }
+	.debug_abbrev 0 : { *(.debug_abbrev) }
+	.debug_info 0 : { *(.debug_info) }
+	.debug_line 0 : { *(.debug_line) }
+	.debug_pubnames 0 : { *(.debug_pubnames) }
+	.debug_aranges 0 : { *(.debug_aranges) }
 }

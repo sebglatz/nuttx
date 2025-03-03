@@ -62,34 +62,6 @@
 #include <arch/board/board.h>
 
 /****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-static void convert_lcd_rgb565(void)
-{
-  /* Put LCD_{R0,R1,R2,G0,G1,B0,B1,B2} in low level */
-
-  stm32_configgpio(GPIO_LTDC_R0);
-  stm32_gpiowrite(GPIO_LTDC_R0, 0);
-  stm32_configgpio(GPIO_LTDC_R1);
-  stm32_gpiowrite(GPIO_LTDC_R1, 0);
-  stm32_configgpio(GPIO_LTDC_R2);
-  stm32_gpiowrite(GPIO_LTDC_R2, 0);
-
-  stm32_configgpio(GPIO_LTDC_G0);
-  stm32_gpiowrite(GPIO_LTDC_G0, 0);
-  stm32_configgpio(GPIO_LTDC_G1);
-  stm32_gpiowrite(GPIO_LTDC_G1, 0);
-
-  stm32_configgpio(GPIO_LTDC_B0);
-  stm32_gpiowrite(GPIO_LTDC_B0, 0);
-  stm32_configgpio(GPIO_LTDC_B1);
-  stm32_gpiowrite(GPIO_LTDC_B1, 0);
-  stm32_configgpio(GPIO_LTDC_B2);
-  stm32_gpiowrite(GPIO_LTDC_B2, 0);
-}
-
-/****************************************************************************
  * Name: stm32_i2c_register
  *
  * Description:
@@ -189,10 +161,6 @@ int stm32_bringup(void)
              "ERROR: Failed to mount the PROC filesystem: %d\n",  ret);
     }
 #endif /* CONFIG_FS_PROCFS */
-
-  /* Put pin not used in RG565 to level zero */
-
-  convert_lcd_rgb565();
 
 #ifdef CONFIG_VIDEO_FB
   /* Initialize and register the framebuffer driver */

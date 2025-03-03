@@ -24,31 +24,15 @@
 
 MEMORY
 {
-  /* ITCM boot address */
+	ITCM_RAM  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
+	FLASH      (rx) : ORIGIN = 0x08000000, LENGTH = 2048K
 
-  itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 64K
-
-  /* 2048Kb FLASH */
-
-  kflash (rx) : ORIGIN = 0x08000000, LENGTH = 128K
-  uflash (rx) : ORIGIN = 0x08020000, LENGTH = 128K
-  xflash (rx) : ORIGIN = 0x08040000, LENGTH = 1792K
-
-  /* 288Kb SRAM123 */
-
-  ksram (rwx) : ORIGIN = 0x30000000, LENGTH = 16K
-  usram (rwx) : ORIGIN = 0x30004000, LENGTH = 16K
-  xsram (rwx) : ORIGIN = 0x30008000, LENGTH = 288K - 32K
-
-  /* 512Kb of contiguous AXI SRAM */
-
-  sram (rwx)  : ORIGIN = 0x24000000, LENGTH = 512K
-
-  /* DTCM SRAM */
-
-  dtcm1 (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
-  dtcm2 (rwx) : ORIGIN = 0x20010000, LENGTH = 64K
-
-  sram4 (rwx) : ORIGIN = 0x38000000, LENGTH = 64K
-  bbram (rwx) : ORIGIN = 0x38800000, LENGTH = 4K
+	DTCM1_RAM (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
+	DTCM2_RAM (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
+	AXI_SRAM  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K /* D1 domain AXI bus */
+	SRAM1     (rwx) : ORIGIN = 0x30000000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM2     (rwx) : ORIGIN = 0x30020000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM3     (rwx) : ORIGIN = 0x30040000, LENGTH =   32K /* D2 domain AHB bus */
+	SRAM4     (rwx) : ORIGIN = 0x38000000, LENGTH =   64K /* D3 domain */
+	BKPRAM    (rwx) : ORIGIN = 0x38800000, LENGTH =    4K
 }
